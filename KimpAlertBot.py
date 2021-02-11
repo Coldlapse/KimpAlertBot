@@ -5,10 +5,22 @@ import urllib, urllib2
 import requests
 import time
 import json
+import datetime
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
 currentkimp = 0
+kimp_max = -65535
+kimp_max_print = 0
+kimp_min = 65535
+kimp_min_print = 0
+noticecount = 0
+now = datetime.datetime.now() + datetime.timedelta(hours=9)
+nowTuple = now.timetuple()
+maxtime_hour = 0
+maxtime_mmin = 0
+mintime_hour = 0
+mintime_mmin = 0
 
 
 def send_telegram(sendData):
@@ -20,8 +32,21 @@ def send_telegram(sendData):
 
 while True:
     kimp = 0
+    print("\n루프문 시작")
+    sys.stdout.flush()
+    tempdate = datetime.datetime.now() + datetime.timedelta(hours=9)
+    tempdateTuple = tempdate.timetuple()
+    if nowTuple.tm_mday != tempdateTuple.tm_mday:
+        noticecount = 0
+        print("날짜 갱신 감지! noticecount 리셋됨")
+        sys.stdout.flush()
+    now = datetime.datetime.now() + datetime.timedelta(hours=9)
+    nowTuple = now.timetuple()
+    print("현재 시각 : " + str(now))
+    sys.stdout.flush()
 
-    for i in range(1, 7):
+
+    for i in range(1, 61):
         usdkrw = requests.get("https://api.manana.kr/exchange/rate/KRW/USD.json")
         usdkrw_data = json.loads(usdkrw.text)
         usdkrwrate = usdkrw_data[0]['rate']
@@ -62,7 +87,36 @@ while True:
         kimp = kimp + (kimp_eos + kimp_xrp + kimp_trx + kimp_xlm) / 4
         time.sleep(10)
 
-    kimp = kimp / 6 # 1분마다 김프 평균 산출
+    kimp = kimp / 60 # 10분마다 김프 평균 산출
+
+    # 역프 발생시 100 아래, 김프 발생시 100 위
+    if (kimp > kimp_max):
+        kimp_max = kimp
+        kimp_max_print = kimp_max - 100
+        kimp_max_print = round(kimp_max_print, 2)
+        maxtime_hour = nowTuple.tm_hour
+        maxtime_mmin = nowTuple.tm_min
+
+    if (kimp < kimp_min):
+        kimp_min = kimp
+        kimp_min_print = kimp_min - 100
+        kimp_min_print = round(kimp_min_print, 2)
+        mintime_hour = nowTuple.tm_hour
+        mintime_mmin = nowTuple.tm_min
+
+    if (noticecount == 0):
+        firsttext = "📢 "
+        noticedate = datetime.datetime.now() + datetime.timedelta(days=-1, hours=9)
+        noticedateTuple = noticedate.timetuple()
+        datestring = str(noticedateTuple.tm_mon) + "월 " + str(noticedateTuple.tm_mday) + "일"
+        noticestring = "의 김프 고점과 저점 알림!\n"
+        maxstring = "고점 : " + str(kimp_max_print) + "%, " + str(maxtime_hour) + "시 " + str(maxtime_mmin) + "분 경\n"
+        minstring = "저점 : " + str(kimp_min_print) + "%, " + str(mintime_hour) + "시 " + str(mintime_mmin) + "분 경"
+        text = firsttext + datestring + noticestring + maxstring + minstring
+        print(text)
+        sys.stdout.flush()
+        send_telegram(text.encode('utf-8'))
+        noticecount = 1
 
     if 100 - kimp >= 0 :
         burgerp = True
@@ -73,6 +127,7 @@ while True:
     kimp = round(kimp, 2)
 
     print(str(kimp))
+    sys.stdout.flush()
 
     if (kimp < 0.5) & (kimp >= 0) & (currentkimp != 0):
         currentkimp = 0
@@ -80,11 +135,13 @@ while True:
             firsttext = "🍔 역프 0%권 도달!\n현재 역프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
         else:
             firsttext = "🥓 김프 0%권 도달!\n현재 김프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
 
     if (kimp < 1) & (kimp >= 0.5) & (currentkimp != 0.5):
@@ -93,11 +150,13 @@ while True:
             firsttext = "🍔 역프 0.5%권 도달!\n현재 역프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
         else:
             firsttext = "🥓 김프 0.5%권 도달!\n현재 김프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
 
     if (kimp < 1.5) & (kimp >= 1) & (currentkimp != 1):
@@ -106,11 +165,13 @@ while True:
             firsttext = "🍔 역프 1%권 도달!\n현재 역프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
         else:
             firsttext = "🥓 김프 1%권 도달!\n현재 김프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
 
     if (kimp < 2) & (kimp >= 1.5) & (currentkimp != 1.5):
@@ -119,11 +180,13 @@ while True:
             firsttext = "🍔 역프 1.5%권 도달!\n현재 역프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
         else:
             firsttext = "🥓 김프 1.5%권 도달!\n현재 김프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
 
     if (kimp < 2.5) & (kimp >= 2) & (currentkimp != 2):
@@ -132,11 +195,13 @@ while True:
             firsttext = "🍔 역프 2%권 도달!\n현재 역프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
         else:
             firsttext = "🥓 김프 2%권 도달!\n현재 김프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
 
     if (kimp < 3) & (kimp >= 2.5) & (currentkimp != 2.5):
@@ -145,11 +210,13 @@ while True:
             firsttext = "🍔 역프 2.5%권 도달!\n현재 역프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
         else:
             firsttext = "🥓 김프 2.5%권 도달!\n현재 김프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
 
     if (kimp < 3.5) & (kimp >= 3) & (currentkimp != 3):
@@ -158,11 +225,13 @@ while True:
             firsttext = "🍔 역프 3%권 도달!\n현재 역프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
         else:
             firsttext = "🥓 김프 3%권 도달!\n현재 김프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
 
     if (kimp < 4) & (kimp >= 3.5) & (currentkimp != 3.5):
@@ -171,11 +240,13 @@ while True:
             firsttext = "🍔 역프 3.5%권 도달!\n현재 역프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
         else:
             firsttext = "🥓 김프 3.5%권 도달!\n현재 김프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
 
     if (kimp < 4.5) & (kimp >= 4) & (currentkimp != 4):
@@ -184,11 +255,13 @@ while True:
             firsttext = "🍔 역프 4%권 도달!\n현재 역프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
         else:
             firsttext = "🥓 김프 4%권 도달!\n현재 김프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
 
     if (kimp < 5) & (kimp >= 4.5) & (currentkimp != 4.5):
@@ -197,11 +270,13 @@ while True:
             firsttext = "🍔 역프 4.5%권 도달!\n현재 역프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
         else:
             firsttext = "🥓 김프 4.5%권 도달!\n현재 김프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
 
     if (kimp < 5.5) & (kimp >= 5) & (currentkimp != 5):
@@ -210,11 +285,13 @@ while True:
             firsttext = "🍔 역프 5%권 도달!\n현재 역프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
         else:
             firsttext = "🥓 김프 5%권 도달!\n현재 김프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
 
     if (kimp < 6) & (kimp >= 5.5) & (currentkimp != 5.5):
@@ -223,11 +300,13 @@ while True:
             firsttext = "🍔 역프 5.5%권 도달!\n현재 역프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
         else:
             firsttext = "🥓 김프 5.5%권 도달!\n현재 김프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
 
     if (kimp < 6.5) & (kimp >= 6) & (currentkimp != 6):
@@ -236,11 +315,13 @@ while True:
             firsttext = "🍔 역프 6%권 도달!\n현재 역프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
         else:
             firsttext = "🥓 김프 6%권 도달!\n현재 김프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
 
     if (kimp < 7) & (kimp >= 6.5) & (currentkimp != 6.5):
@@ -249,11 +330,13 @@ while True:
             firsttext = "🍔 역프 6.5%권 도달!\n현재 역프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
         else:
             firsttext = "🥓 김프 6.5%권 도달!\n현재 김프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
 
     if (kimp < 7.5) & (kimp >= 7) & (currentkimp != 7):
@@ -262,11 +345,13 @@ while True:
             firsttext = "🍔 역프 7%권 도달!\n현재 역프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
         else:
             firsttext = "🥓 김프 7%권 도달!\n현재 김프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
 
     if (kimp < 8) & (kimp >= 7.5) & (currentkimp != 7.5):
@@ -275,11 +360,13 @@ while True:
             firsttext = "🍔 역프 7.5%권 도달!\n현재 역프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
         else:
             firsttext = "🥓 김프 7.5%권 도달!\n현재 김프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
 
     if (kimp < 8.5) & (kimp >= 8) & (currentkimp != 8):
@@ -288,11 +375,13 @@ while True:
             firsttext = "🍔 역프 8%권 도달!\n현재 역프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
         else:
             firsttext = "🥓 김프 8%권 도달!\n현재 김프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
 
     if (kimp < 9) & (kimp >= 8.5) & (currentkimp != 8.5):
@@ -301,11 +390,13 @@ while True:
             firsttext = "🍔 역프 8.5%권 도달!\n현재 역프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
         else:
             firsttext = "🥓 김프 8.5%권 도달!\n현재 김프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
 
     if (kimp < 9.5) & (kimp >= 9) & (currentkimp != 9):
@@ -314,11 +405,13 @@ while True:
             firsttext = "🍔 역프 9%권 도달!\n현재 역프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
         else:
             firsttext = "🥓 김프 9%권 도달!\n현재 김프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
 
     if (kimp < 10) & (kimp >= 9.5) & (currentkimp != 9.5):
@@ -327,11 +420,13 @@ while True:
             firsttext = "🍔 역프 9.5%권 도달!\n현재 역프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
         else:
             firsttext = "🥓 김프 9.5%권 도달!\n현재 김프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
 
     if (kimp >= 10):
@@ -340,9 +435,11 @@ while True:
             firsttext = "🍔 역프 10% 초과!\n현재 역프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
         else:
             firsttext = "🥓 김프 10% 초과!\n현재 김프 : "
             text = firsttext + str(kimp) + "%"
             print(text)
+            sys.stdout.flush()
             send_telegram(text.encode('utf-8'))
